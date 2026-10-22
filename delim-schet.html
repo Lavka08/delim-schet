@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Делим счёт</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #0f1115;
+    color: #eaeaea;
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+  .card {
+    width: 520px;
+    background: #181b22;
+    border-radius: 16px;
+    padding: 24px;
+  }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  .sub { margin: 0 0 24px; color: #8a8f9c; font-size: 14px; }
+  label { display: block; font-size: 14px; color: #b5b9c4; margin: 16px 0 6px; }
+  input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #2a2f3a;
+    background: #0f1115;
+    color: #fff;
+    font-size: 16px;
+  }
+  .quick { display: flex; gap: 8px; margin-top: 8px; }
+  .quick button {
+    flex: 1;
+    padding: 8px;
+    border-radius: 999px;
+    border: 1px solid #2a2f3a;
+    background: transparent;
+    color: #d6b46a;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .result {
+    margin-top: 24px;
+    padding: 16px;
+    border-radius: 12px;
+    background: #0f1115;
+  }
+  .row { display: flex; justify-content: space-between; padding: 6px 0; color: #b5b9c4; }
+  .row b { color: #fff; }
+  .row.big b { color: #d6b46a; font-size: 24px; }
+  .main-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: #d6b46a;
+    color: #111;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  h2 { font-size: 18px; margin: 28px 0 8px; display: flex; justify-content: space-between; align-items: center; }
+  .clear { background: none; border: none; color: #8a8f9c; cursor: pointer; font-size: 13px; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li { padding: 10px 0; border-bottom: 1px solid #232733; font-size: 14px; color: #cfd2da; }
+  li .time { color: #8a8f9c; font-size: 12px; display: block; }
+  li.empty { color: #8a8f9c; border: none; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Делим счёт</h1>
+    <p class="sub">Посчитайте, сколько платит каждый, с учётом чаевых.</p>
+
+    <label for="bill">Сумма чека, €</label>
+    <input id="bill" type="number" inputmode="decimal" min="0" value="60">
+
+    <label for="tip">Чаевые, %</label>
+    <input id="tip" type="number" inputmode="decimal" min="0" value="10">
+    <div class="quick">
+      <button data-tip="0">0%</button>
+      <button data-tip="10">10%</button>
+      <button data-tip="15">15%</button>
+    </div>
+
+    <label for="people">Сколько человек</label>
+    <input id="people" type="number" inputmode="numeric" min="1" value="3">
+
+    <div class="result">
+      <div class="row"><span>Чаевые</span><b id="tipSum">0 €</b></div>
+      <div class="row"><span>Итого</span><b id="total">0 €</b></div>
+      <div class="row big"><span>С каждого</span><b id="perPerson">0 €</b></div>
+    </div>
+
+    <button class="main-btn" id="saveBtn">Сохранить в историю</button>
+
+    <h2>История <button class="clear" id="clearBtn">Очистить</button></h2>
+    <ul id="history"></ul>
+  </div>
+
+<script>
+  const billEl = document.getElementById('bill');
+  const tipEl = document.getElementById('tip');
+  const peopleEl = document.getElementById('people');
+  const tipSumEl = document.getElementById('tipSum');
+  const totalEl = document.getElementById('total');
+  const perPersonEl = document.getElementById('perPerson');
+  const historyEl = document.getElementById('history');
+
+  let history = JSON.parse(localStorage.getItem('History') || '[]');
+
+  function fmt(n) {
+    return n.toFixed(2).replace('.', ',') + ' €';
+  }
+
+  function calc() {
+    const bill = parseFloat(billEl.value) || 0;
+    const tipPct = parseFloat(tipEl.value) || 0;
+    const people = parseInt(peopleEl.value) || 1;
+
+    const tip = bill * tipPct / 100;
+    const total = bill + tip;
+    const perPerson = bill / people + tip;
+
+    tipSumEl.textContent = fmt(tip);
+    totalEl.textContent = fmt(total);
+    perPersonEl.textContent = fmt(perPerson);
+
+    return { bill, tipPct, people, total, perPerson };
+  }
+
+  function saveHistory() {
+    localStorage.setItem('history', JSON.stringify(history));
+  }
+
+  function render() {
+    if (history.length === 0) {
+      historyEl.innerHTML = '<li class="empty">Пока пусто</li>';
+      return;
+    }
+    historyEl.innerHTML = history.map(function (h) {
+      return '<li><span class="time">' + h.time + '</span>' +
+        fmt(h.bill) + ' · ' + h.people + ' чел. · ' + h.tipPct + '% → <b>' +
+        fmt(h.perPerson) + '</b> с человека</li>';
+    }).join('');
+  }
+
+  [billEl, tipEl, peopleEl].forEach(function (el) {
+    el.addEventListener('input', calc);
+  });
+
+  document.querySelectorAll('.quick button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      tipEl.value = btn.dataset.tip;
+      calc();
+    });
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', function () {
+    history = [];
+    saveHistory();
+    render();
+  });
+
+  calc();
+  render();
+
+  document.getElementById('saveButton').addEventListener('click', function () {
+    const r = calc();
+    const time = new Date().toLocaleString('ru-RU', {
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+    });
+    history.unshift(Object.assign({ time: time }, r));
+    saveHistory();
+    render();
+  });
+</script>
+</body>
+</html>
