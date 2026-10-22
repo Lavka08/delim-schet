@@ -16,7 +16,8 @@
     padding: 24px 16px;
   }
   .card {
-    width: 520px;
+    width: 100%;
+    max-width: 520px;
     background: #181b22;
     border-radius: 16px;
     padding: 24px;
@@ -113,20 +114,20 @@
   const perPersonEl = document.getElementById('perPerson');
   const historyEl = document.getElementById('history');
 
-  let history = JSON.parse(localStorage.getItem('History') || '[]');
+  let history = JSON.parse(localStorage.getItem('history') || '[]');
 
   function fmt(n) {
     return n.toFixed(2).replace('.', ',') + ' €';
   }
 
   function calc() {
-    const bill = parseFloat(billEl.value) || 0;
-    const tipPct = parseFloat(tipEl.value) || 0;
-    const people = parseInt(peopleEl.value) || 1;
+    const bill = Math.max(0, parseFloat(billEl.value) || 0);
+    const tipPct = Math.max(0, parseFloat(tipEl.value) || 0);
+    const people = Math.max(1, parseInt(peopleEl.value) || 1);
 
     const tip = bill * tipPct / 100;
     const total = bill + tip;
-    const perPerson = bill / people + tip;
+    const perPerson = total / people;
 
     tipSumEl.textContent = fmt(tip);
     totalEl.textContent = fmt(total);
@@ -154,6 +155,10 @@
   [billEl, tipEl, peopleEl].forEach(function (el) {
     el.addEventListener('input', calc);
   });
+  // Если ввели минус или 0 человек — после выхода из поля показываем исправленное число
+  billEl.addEventListener('change', function () { if (parseFloat(billEl.value) < 0) billEl.value = 0; calc(); });
+  tipEl.addEventListener('change', function () { if (parseFloat(tipEl.value) < 0) tipEl.value = 0; calc(); });
+  peopleEl.addEventListener('change', function () { peopleEl.value = Math.max(1, parseInt(peopleEl.value) || 1); calc(); });
 
   document.querySelectorAll('.quick button').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -171,7 +176,7 @@
   calc();
   render();
 
-  document.getElementById('saveButton').addEventListener('click', function () {
+  document.getElementById('saveBtn').addEventListener('click', function () {
     const r = calc();
     const time = new Date().toLocaleString('ru-RU', {
       day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
